@@ -212,15 +212,15 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// an accurate in-air indication.
 	bool verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * armThresholdFactor;
 
+	// Check if we are moving horizontally.
+	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
+					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
+
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
 	bool in_descend = _is_climb_rate_enabled()
 			  && (_vehicleLocalPositionSetpoint.vz >= 0.9f * math::max(_params.landSpeed, 0.1f));
 	bool hit_ground = in_descend && !verticalMovement;
-
-	// Check if we are moving horizontally.
-	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
-					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
 
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
@@ -296,7 +296,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	}
 
 	if (_ground_contact_hysteresis.get_state() && _has_minimal_thrust() && !rotating) {
-		// Ground contact, no thrust and no movement -> landed
+		// Ground contact, no thrust and no movement -> maybe landed
 		return true;
 	}
 
@@ -313,7 +313,7 @@ bool MulticopterLandDetector::_get_landed_state()
 
 float MulticopterLandDetector::_get_takeoff_throttle()
 {
-	/* Position mode */
+	/* Position or altitude mode */
 	if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_altitude_enabled) {
 		/* Should be above 0.5 because below that we do not gain altitude and won't take off.
 		 * Also it should be quite high such that we don't accidentally take off when using
